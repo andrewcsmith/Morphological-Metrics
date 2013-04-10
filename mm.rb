@@ -139,27 +139,42 @@ module NArrayX
     m
   end
   
-  def ordered_2_combinations
-    combinations = []
-    if self.shape[1] != nil
-      for i in 0...self.shape[1]
-        for j in (i+1)...self.shape[1]
-          combinations << NArray[HD::Ratio[*self[true,i]],HD::Ratio[*self[true,j]]]
-        end
-      end
-      return combinations
-    end
+  # Takes combinations over the first dimension
+  def combination(n = 2)
+    m = self.shape[1]
     
-    (0...self.length).each do |i|
-      ((i + 1)...self.size).each do |j|
-        combinations << [self[i], self[j]]
-      end
+    a = (0...m).to_a
+    a.combination(n) do |x|
+      yield self[true, x]
     end
-    return combinations
   end
+  
+  # def ordered_2_combinations
+  #   combinations = []
+  # 		
+  # 		# If it is at least two dimensions...
+  #   if self.shape[1] != nil
+  #     for i in 0...self.shape[1]
+  #       for j in (i+1)...self.shape[1]
+  #         combinations << NArray[HD::Ratio[*self[true,i]],HD::Ratio[*self[true,j]]]
+  #       end
+  #     end
+  # 			# Returns an NArray.int(2,2) with pairs of ratios
+  #     return combinations
+  #   end
+  #   
+  #   (0...self.length).each do |i|
+  #     ((i + 1)...self.size).each do |j|
+  #       combinations << [self[i], self[j]]
+  #     end
+  #   end
+  #   # Returns an array of 
+  # 		combinations
+  # end
   
   # def uniq (won't work on this yet)
 end
+
 
 module MM
   include Math
@@ -168,7 +183,7 @@ module MM
   
   # Configuration object for distance functions
   class DistConfig
-    attr_accessor :scale, :order, :inter_delta, :intra_delta, :int_func, :ic_calc, :mod
+    attr_accessor :scale, :order, :inter_delta, :intra_delta, :int_func, :ic_calc, :mod, :mapper
     
     # Creates a new DistConfig object. Takes a configuration hash with the 
     # following keys:
@@ -190,6 +205,9 @@ module MM
     #              constant docs for details. Default: IC_FUNCTIONS[:mod]
     # [+:mod+] The modulus of the numbering system. Used only in interval class
     #          calculations. Default: 12
+		# [+:mapper+] The function to map the output of ordered_2_combinations onto the delta
+		# 
+		# 
     #
     def initialize(opts = {})
       @scale       = opts[:scale]       || :absolute
@@ -199,6 +217,7 @@ module MM
       @int_func    = opts[:int_func]    || MM::INTERVAL_FUNCTIONS[:plus_one]
       @ic_calc     = opts[:ic_calc]     || MM::IC_FUNCTIONS[:mod]
       @mod         = opts[:mod]         || 12
+			@mapper      = opts[:mapper]      || MM::MAPPER_FUNCTIONS[:narray_pairs]
     end
   end
 
@@ -211,6 +230,8 @@ module MM
     # for functions that require it, e.g. angle.
     (((m - n) ** 2).sum) ** 0.5
   end
+	
+	@@spaceship = ->(m, n){((m > n).to_f - (m < n)).to_i}
   
   
   #######################
@@ -239,7 +260,7 @@ module MM
   @@uld = ->(m, n, config = nil) do
     if config.nil?
       config = self::DistConfig.new
-      config.intra_delta = :-.to_proc
+      config.intra_delta = @@spaceship
     end
 
     sgn_m = self.sgn(m, config.order, config.intra_delta, config.int_func)
@@ -266,7 +287,7 @@ module MM
   @@old = ->(m, n, config = nil) do
     if config.nil?
       config = self::DistConfig.new
-      config.intra_delta = :-.to_proc
+      config.intra_delta = @@spaceship
     end
 
     sgn_m = self.sgn(m, config.order, config.intra_delta, config.int_func)
@@ -309,11 +330,11 @@ module MM
     n.extend NArrayX
     
     # This returns normal Ruby arrays of NArrays
-    m_combo = m.ordered_2_combinations
-    n_combo = n.ordered_2_combinations
+    m_combo = ordered_2_combinations m
+    n_combo = ordered_2_combinations n
 
-    m_sgn = NArray.to_na(m_combo.collect { |a, b| self.sgn_single(config.intra_delta.call(a,b)) })
-    n_sgn = NArray.to_na(n_combo.collect { |a, b| self.sgn_single(config.intra_delta.call(a,b)) })
+    m_sgn = NArray.to_na(config.mapper.call(m_combo) { |a, b| self.sgn_single(config.intra_delta.call(a,b)) })
+    n_sgn = NArray.to_na(config.mapper.call(n_combo) {|a, b| self.sgn_single(config.intra_delta.call(a,b)) })
 
     m_sgn.ne(n_sgn).sum.to_f / m_combo.size
   end
@@ -339,17 +360,17 @@ module MM
       config.intra_delta = :-.to_proc
     end
 
-     # Extend our NArrays with a few additional methods
-      m.extend NArrayX
-      n.extend NArrayX
+		# Extend our NArrays with a few additional methods
+    m.extend NArrayX
+    n.extend NArrayX
 
-      # This returns normal Ruby arrays of NArrays
-      m_combo = m.ordered_2_combinations
-      n_combo = n.ordered_2_combinations
+    # This returns normal Ruby arrays of NArrays
+    m_combo = ordered_2_combinations m
+    n_combo = ordered_2_combinations n
 
-    m_sgn_map = m_combo.map { |a, b| self.sgn_single(config.intra_delta.call(a,b)) }
-    n_sgn_map = n_combo.map { |a, b| self.sgn_single(config.intra_delta.call(a,b)) }
-
+    m_sgn_map = config.mapper.call(m_combo) { |a, b| self.sgn_single(config.intra_delta.call(a,b)) }
+    n_sgn_map = config.mapper.call(n_combo) { |a, b| self.sgn_single(config.intra_delta.call(a,b)) }
+		
     m_sgn = NArray.to_na(m_sgn_map)
     n_sgn = NArray.to_na(n_sgn_map)
 
@@ -360,6 +381,17 @@ module MM
     end
     sum.to_f / 2
   end
+	
+	# These should turn the output of ordered_2_combinations 
+	# into something that can be passed to config.intra_delta
+	MAPPER_FUNCTIONS = {
+		:narray_pairs => ->(target, &mapper) {
+			target.map do |pair|
+				selector = Array.new(pair.dim-1, true)
+				mapper.call(pair[*(selector.dup << 0)], pair[*(selector.dup << 1)])
+			end
+		}
+	}
   
   
   ################################################################
@@ -380,9 +412,11 @@ module MM
         m.extend NArrayX
         n.extend NArrayX
         # This returns normal Ruby arrays of NArrays
-        m_combo = m.ordered_2_combinations
-        n_combo = n.ordered_2_combinations
+        m_combo = ordered_2_combinations m
+        n_combo = ordered_2_combinations n
         
+				# TODO: :mapper should definitely be passed as part of the object in question
+				# This defines how the intra_delta treats individual combinations
         # This is probably pretty slow
         if m.shape.size == 2
           mapper = ->(a){config.intra_delta.call(a[true,0],a[true,1])}
@@ -412,25 +446,26 @@ module MM
 
       scale_proc = ->(m_diff, n_diff) {return [1, 1, 1]}
       # Constructs a Proc which returns the scale_factor, inner_scale_m, and inner_scale_n
-      if config.scale == :absolute
-        scale_proc = ->(m_diff, n_diff) {
+			case config.scale
+			when :absolute
+        scale_proc = ->(m_diff, n_diff) do
           the_max = [m_diff.max, n_diff.max].max
           return [(the_max == 0 ? 1 : the_max), 1, 1]
-        }
-      elsif config.scale == :relative
-        scale_proc = ->(m_diff, n_diff) {
+        end
+			when :relative
+        scale_proc = ->(m_diff, n_diff) do
           return [1, (m_diff.max == 0 ? 1 : m_diff.max), (n_diff.max == 0 ? 1 : n_diff.max)]
-        }
-      elsif config.scale == :maxint_squared
-        scale_proc = ->(m_diff, n_diff) {
+        end
+			when :maxint_squared
+        scale_proc = ->(m_diff, n_diff) do
           root_of_squared_differences = ((m_diff - n_diff)**2)**0.5
           [(root_of_squared_differences.max == 0 ? 1 : root_of_squared_differences.max), 1, 1]
-        }
-      elsif config.scale == :none
-        scale_proc = ->(m_diff, n_diff) {
+        end
+			when :none
+        scale_proc = ->(m_diff, n_diff) do
           [1.0, 1.0, 1.0]
-        }
-      elsif config.scale.is_a? Proc 
+        end
+			when Proc 
         scale_proc = config.scale
       end   
       scale_factor, inner_scale_m, inner_scale_n = scale_proc.call(m_diff, n_diff)
@@ -656,8 +691,14 @@ module MM
     # The interval function should seek forward, rather than starting at
     # index 1 and finishing at the final index.
 
+		# TODO: ACS - This is generalized for both contour and magnitude
+
     # So, to get the 1st order discrete derivative, set delta to :-
     # and provide an interval function which generates an array = m[1...m.length]
+    
+    if !(m.is_a? NArray)
+      raise "Vector_delta requires an NArray. You passed class #{m.class}"
+    end
 
     if order < 0
       raise "Order must be >= 0"
@@ -732,10 +773,9 @@ module MM
   # means down. This indicates subtraction was used. In the spirit of the
   # generalized delta function in MM, any delta function may be passed in.
   #
-  def self.sgn(m, order = 1, intra_delta = :-.to_proc, int_func = nil)
-    # We usually want raw difference here, not the magnitude
+  def self.sgn(m, order = 1, intra_delta = @@spaceship, int_func = nil)
+		# Our most basic intra_delta is contour (spaceship)
     deltas = self.vector_delta(m, order, intra_delta, int_func)
-    ((deltas > 0).to_f - (deltas < 0)).to_i
   end
 
   #
@@ -745,25 +785,38 @@ module MM
   # described above.
   #
   def self.sgn_single(i)
-    return -1 if i < 0
-    return 1 if i > 0
-    0
+		(i <=> 0) * -1
   end
 
-  #
-  # Ordered 2-combinations
-  # Provides all of the 2-combinations of an array
-  # in an order corresponding to a "flattened" comparison matrix.
-  #
-  def self.ordered_2_combinations(n)
-    combinations = []
-    n.each_index do |i|
-      ((i + 1)..(n.size - 1)).each do |j|
-        combinations << [n[i], n[j]]
-      end
-    end
-    combinations
-  end
+  # #
+  # # Ordered 2-combinations
+  # # Provides all of the 2-combinations of an array
+  # # in an order corresponding to a "flattened" comparison matrix.
+  # #
+  # def self.ordered_2_combinations(n)
+  #   combinations = []
+  #   n.each_index do |i|
+  #     ((i + 1)..(n.size - 1)).each do |j|
+  #       combinations << [n[i], n[j]]
+  #     end
+  #   end
+  #   combinations
+  # end
+	
+	# Returns an Array of combinations where for each element <tt>n</tt>: <tt>n.shape[-1] == 2</tt>
+	# Is there a reason this was a class method?
+	def self.ordered_2_combinations(n)
+		# Creates an array of pairs of elements
+		combos = (0...n.shape[-1]).to_a.combination(2).inject([]) do |memo, c|
+			c = [c]
+			(n.dim-1).times {c.unshift true}
+			# This is the final mask
+			memo << n.slice(*c)
+		end
+		# Commented out; we don't want a larger NArray at this point (that's in the future)
+		# NArray.to_na(combos)
+		combos
+	end
   
   # TODO: Make the above method work for one dimension on an NArray, so that we don't have to convert back and forth
 
