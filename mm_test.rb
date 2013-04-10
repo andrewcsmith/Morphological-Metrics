@@ -38,7 +38,7 @@ class MMTest < Test::Unit::TestCase
   end
   
   def test_ocd
-    # p. 331-334    
+    # p. 331-334
     m = NArray[1,5,12,2,9,6]
     n = NArray[7,6,4,9,8,1]
     assert_in_delta(0.666, MM.ocd.call(m,n), 0.001)
