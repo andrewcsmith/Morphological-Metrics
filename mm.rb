@@ -123,6 +123,18 @@ module MM
       @ic_calc     = opts[:ic_calc]     || MM::IC_FUNCTIONS[:mod]
       @mod         = opts[:mod]         || 12
 			@mapper      = opts[:mapper]      || MM::MAPPER_FUNCTIONS[:narray_pairs]
+			
+			[@inter_delta, @intra_delta].each do |sym|
+				if sym.is_a? Symbol && MM::DELTA_FUNCTIONS.has_key? sym
+					sym = MM::DELTA_FUNCTIONS[sym]
+				end
+			end
+			if @int_func.is_a? Symbol && MM::INTERVAL_FUNCTIONS.has_key? @int_func
+				@int_func = MM::INTERVAL_FUNCTIONS[@int_func]
+			end
+			if @mapper.is_a? Symbol && MM::MAPPER_FUNCTIONS.has_key? @mapper
+				@mapper = MM::MAPPER_FUNCTIONS[@mapper]
+			end
     end
   end
 
