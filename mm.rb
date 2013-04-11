@@ -80,101 +80,6 @@
 #  > MM.dist_ocm(m,_)
 #  => 0.5499999999999999
 #
-module NArrayX
-  def include? r
-    for i in 0...self.shape[1]
-      (self[true,i] == r) ? (return true) : false
-    end
-    false
-  end
-  
-  def to_f
-    p = NArray.float(*self.shape)
-    for i in 0...self.total
-      p[i] = self[i].to_f
-    end
-    p
-  end
-  
-  def map &b
-    self.collect &b
-  end
-  
-  def map! &b
-    self.collect! &b
-  end
-  
-  def each_dim dim
-    a = Array.new(self.dim, true)
-    for i in 0...self.shape[dim]
-      a[dim] = i
-      yield HD::Ratio[*self[*a]]
-    end
-    self
-  end
-  
-  def each_ratio
-    a = Array.new(2, true)
-    for i in 0...self.shape[1]
-      a[1] = i
-      yield HD::Ratio[*self[*a]]
-    end
-    self
-  end
-  
-  def collect_ratios
-    m = self.dup.fill! 0
-    for i in 0...self.shape[1]
-      m[true,i] = yield HD::Ratio[*self[true,i]]
-    end
-    m
-  end
-  
-  def mul_ratios other
-    (self.shape != other.shape) ? (raise ArgumentError.new("Supplied an array of shape #{other.shape} to mul_ratios")) : false
-    m = self.dup.fill! 0
-    for i in 0...self.shape[1]
-      m[true,i] = HD::Ratio[*other[true,i]] * HD::Ratio[*self[true,i]]
-    end
-    m
-  end
-  
-  # Takes combinations over the first dimension
-  def combination(n = 2)
-    m = self.shape[1]
-    
-    a = (0...m).to_a
-    a.combination(n) do |x|
-      yield self[true, x]
-    end
-  end
-  
-  # def ordered_2_combinations
-  #   combinations = []
-  # 		
-  # 		# If it is at least two dimensions...
-  #   if self.shape[1] != nil
-  #     for i in 0...self.shape[1]
-  #       for j in (i+1)...self.shape[1]
-  #         combinations << NArray[HD::Ratio[*self[true,i]],HD::Ratio[*self[true,j]]]
-  #       end
-  #     end
-  # 			# Returns an NArray.int(2,2) with pairs of ratios
-  #     return combinations
-  #   end
-  #   
-  #   (0...self.length).each do |i|
-  #     ((i + 1)...self.size).each do |j|
-  #       combinations << [self[i], self[j]]
-  #     end
-  #   end
-  #   # Returns an array of 
-  # 		combinations
-  # end
-  
-  # def uniq (won't work on this yet)
-end
-
 
 module MM
   include Math
@@ -230,7 +135,9 @@ module MM
     # for functions that require it, e.g. angle.
     (((m - n) ** 2).sum) ** 0.5
   end
-	
+	# 
+	# :spaceship method to get <=> to work properly on an narray
+	# 
 	@@spaceship = ->(m, n){((m > n).to_f - (m < n)).to_i}
   
   
@@ -324,11 +231,7 @@ module MM
       config = self::DistConfig.new
       config.intra_delta = :-.to_proc
     end
-    
-    # Extend our NArrays with a few additional methods
-    m.extend NArrayX
-    n.extend NArrayX
-    
+        
     # This returns normal Ruby arrays of NArrays
     m_combo = ordered_2_combinations m
     n_combo = ordered_2_combinations n
@@ -359,10 +262,6 @@ module MM
       config = self::DistConfig.new
       config.intra_delta = :-.to_proc
     end
-
-		# Extend our NArrays with a few additional methods
-    m.extend NArrayX
-    n.extend NArrayX
 
     # This returns normal Ruby arrays of NArrays
     m_combo = ordered_2_combinations m
@@ -408,9 +307,6 @@ module MM
   def self.get_mag_metric(style = :combinatorial, post_proc)
     ->(m, n, config = self::DistConfig.new) {
       if style == :combinatorial
-       # Extend our NArrays with a few additional methods
-        m.extend NArrayX
-        n.extend NArrayX
         # This returns normal Ruby arrays of NArrays
         m_combo = ordered_2_combinations m
         n_combo = ordered_2_combinations n
@@ -433,9 +329,6 @@ module MM
         # puts "m_combo: #{m_combo.to_a.to_s}"
         # puts "n_combo: #{n_combo.to_a.to_s}"
       elsif style == :linear
-        # Extend our NArrays with a few additional methods
-        m.extend NArrayX
-        n.extend NArrayX
         m_combo, n_combo = nil, nil
         m_diff = self.vector_delta(m, config.order, config.intra_delta, config.int_func)
         n_diff = self.vector_delta(n, config.order, config.intra_delta, config.int_func)
