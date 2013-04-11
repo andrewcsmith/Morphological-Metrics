@@ -125,15 +125,18 @@ module MM
 			@mapper      = opts[:mapper]      || MM::MAPPER_FUNCTIONS[:narray_pairs]
 			
 			[@inter_delta, @intra_delta].each do |sym|
-				if sym.is_a? Symbol && MM::DELTA_FUNCTIONS.has_key? sym
+				if sym.is_a?(Symbol) && MM::DELTA_FUNCTIONS.has_key?(sym)
 					sym = MM::DELTA_FUNCTIONS[sym]
 				end
 			end
-			if @int_func.is_a? Symbol && MM::INTERVAL_FUNCTIONS.has_key? @int_func
+			if @int_func.is_a?(Symbol) && MM::INTERVAL_FUNCTIONS.has_key?(@int_func)
 				@int_func = MM::INTERVAL_FUNCTIONS[@int_func]
 			end
-			if @mapper.is_a? Symbol && MM::MAPPER_FUNCTIONS.has_key? @mapper
+			if @mapper.is_a?(Symbol) && MM::MAPPER_FUNCTIONS.has_key?(@mapper)
 				@mapper = MM::MAPPER_FUNCTIONS[@mapper]
+			end
+			if @ic_calc.is_a?(Symbol) && MM::IC_FUNCTIONS.has_key?(@ic_calc)
+				@ic_calc = MM::IC_FUNCTIONS[@ic_calc]
 			end
     end
   end
@@ -326,18 +329,20 @@ module MM
 				# TODO: :mapper should definitely be passed as part of the object in question
 				# This defines how the intra_delta treats individual combinations
         # This is probably pretty slow
-        if m.shape.size == 2
-          mapper = ->(a){config.intra_delta.call(a[true,0],a[true,1])}
-        elsif m.shape.size == 1
-          mapper = ->(a){config.intra_delta.call(a[0], a[1])}
-        end
+        # if m.shape.size == 2
+        #   mapper = ->(a){config.intra_delta.call(a[true,0],a[true,1])}
+        # elsif m.shape.size == 1
+        #   mapper = ->(a){config.intra_delta.call(a[0], a[1])}
+        # end
         
         # Legacy code
         # m_diff = NArray.to_na(m_combo.map { |a,b| config.intra_delta.call(a,b) })
         # n_diff = NArray.to_na(n_combo.map { |a,b| config.intra_delta.call(a,b) })
         
-        m_diff = NArray.to_na(m_combo.map &mapper)
-        n_diff = NArray.to_na(n_combo.map &mapper)
+				m_diff, n_diff = [m_combo, n_combo].map do |combos| 
+					NArray.to_na(config.mapper.call(combos) { |a, b| config.intra_delta.call(a,b) })
+				end
+				
         # puts "m_combo: #{m_combo.to_a.to_s}"
         # puts "n_combo: #{n_combo.to_a.to_s}"
       elsif style == :linear
@@ -346,8 +351,8 @@ module MM
         n_diff = self.vector_delta(n, config.order, config.intra_delta, config.int_func)
       end
       
-      #puts "m_diff: #{m_diff.to_a.to_s}"
-      #puts "n_diff: #{n_diff.to_a.to_s}"
+      # puts "m_diff: #{m_diff.class}\n#{m_diff.to_a.to_s}"
+      # puts "n_diff: #{n_diff.class}\n#{n_diff.to_a.to_s}"
 
       scale_proc = ->(m_diff, n_diff) {return [1, 1, 1]}
       # Constructs a Proc which returns the scale_factor, inner_scale_m, and inner_scale_n
