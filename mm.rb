@@ -299,11 +299,16 @@ module MM
 	# These should turn the output of ordered_2_combinations 
 	# into something that can be passed to config.intra_delta
 	MAPPER_FUNCTIONS = {
+		# Given an NArray of form [*s, n, i] (see ordered_combinations, below),
+		# :narray pairs will call the given block for each pair
 		:narray_pairs => ->(target, &mapper) {
-			target.map do |pair|
-				selector = Array.new(pair.dim-1, true)
-				mapper.call(pair[*(selector.dup << 0)], pair[*(selector.dup << 1)])
+			true_selector = Array.new(target.dim-2, true)
+			target.shape[-1].times do |i|
+				mapper.call(target[*true_selector, 0, i], target[*true_selector, 1, i])
 			end
+		},
+		:array_pairs => ->(target, &mapper) {
+			
 		}
 	}
   
@@ -713,20 +718,13 @@ module MM
   #   combinations
   # end
 	
-	# Returns an Array of combinations where for each element <tt>n</tt>: <tt>n.shape[-1] == 2</tt>
-	def self.ordered_2_combinations(n, size = nil)
-		combo_masks = (0...n.shape[-1]).to_a.combination(2)
-		# Creates an array of pairs of elements. n.shape[0...n.dim-1] returns 
-		# the shape of the element alone (not the # of elements in a vector)
-		combos = NArray.new(n.typecode, *n.shape[0...n.dim-1], 2, combo_masks.size)
-		combo_masks.each_with_index do |c, i|
-			mask = Array.new(n.dim-1, true)
-			# puts "\n#{n.slice(*(mask+[c])).inspect}"
-			# This is the final mask
-			combos[true,true,true,i] = n.slice(*(mask+[c]))
-		end
-		combos
+	# Creates an narray of combinations of elements. n.shape[0...n.dim-1] returns 
+	# the shape of the element alone (not the # of elements in a vector)
+	def self.ordered_combinations(n, i)
+		combo_masks = NArray.to_na((0...n.shape[-1]).to_a.combination(i).to_a)
+		n[*Array.new(n.dim-1, true), combo_masks].reshape(*[*n.shape[0...n.dim-1],i,combo_masks.shape[-1]])
 	end
+	def self.ordered_2_combinations(n) ; MM.ordered_combinations(n, 2) ; end
 	
   #
   # A hash containing delta functions. These functions are for calculating the
