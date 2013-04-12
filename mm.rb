@@ -604,6 +604,10 @@ module MM
   # specify your own delta proc. These take the nth order discrete derivative 
   # of the input vector.
   #
+	# Argument specs:
+	# - m must be an NArray
+	# - order must be >= 0
+	# - if delta & int_func exist, each must be either a Symbol or a Proc
   def self.vector_delta(m, order = 1, delta = nil, int_func = nil)
     # Always go from 0 to length - 2, i.e. stop 1 index short of the end.
     # The interval function should seek forward, rather than starting at
@@ -612,35 +616,25 @@ module MM
     # So, to get the 1st order discrete derivative, set delta to :-
     # and provide an interval function which generates an array = m[1...m.length]
     
-    if !(m.is_a? NArray)
-      raise ArgumentError, "Vector_delta requires an NArray. You passed class #{m.class}"
-    end
-
-    if order < 0
-      raise "Order must be >= 0"
-    elsif order == 0
-      return m
-    end
-
-    if (delta.class != Symbol && delta.class != Proc && !delta.nil?) || (int_func.class != Symbol && int_func.class != Proc && !int_func.nil?)
-      raise "Delta and int_func must be either Symbol or Proc."
-    end
-    delta = delta.to_proc if delta.class == Symbol
+    (m.is_a? NArray) ? true : raise(ArgumentError, "Vector_delta requires an NArray. You passed class #{m.class}")
+    (order < 0) ? raise(ArgumentError, "Order must be >= 0") : false
+		(delta && ![Symbol, Proc].include?(delta.class)) ? raise(ArgumentError, "delta must be Symbol or Proc") : (delta = delta.to_proc if delta.class == Symbol)
+		(int_func && [Symbol, Proc].include?(int_func.class)) ? raise(ArugmentError, "int_func must be Symbol or Proc") : false
 
     delta = MM::DELTA_FUNCTIONS[:abs_diff] if delta.nil?
     int_func = MM::INTERVAL_FUNCTIONS[:plus_one] if int_func.nil?
-
-    compare = int_func.call(m)
-    res = delta.call(m[*Array.new(m.dim-1), 0...compare.shape[-1]], compare)
+		
     # If the compare vector is shorter than m, we assume
     # it is structured such that the missing element at the 
     # end of m is incorporated somehow into the compare vector.
     # E.g. for the default m[i] - m[i+1] approach described in self.
-    if order == 1
-      return res
-    else
-      return self.vector_delta(res, order - 1, delta, int_func)
-    end
+		res = m
+		while order > 0
+	    compare = int_func.call(res)
+	    res = delta.call(res[*Array.new(res.dim-1), 0...compare.shape[-1]], compare)
+			order -= 1
+		end
+		res
   end
 
   #
