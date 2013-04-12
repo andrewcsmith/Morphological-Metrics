@@ -299,11 +299,19 @@ module MM
 	# These should turn the output of ordered_2_combinations 
 	# into something that can be passed to config.intra_delta
 	MAPPER_FUNCTIONS = {
+		# Given an NArray of form [*s, n, i] (see ordered_combinations, below),
+		# :narray pairs will call the given block for each pair, and return the whole map
 		:narray_pairs => ->(target, &mapper) {
-			target.map do |pair|
-				selector = Array.new(pair.dim-1, true)
-				mapper.call(pair[*(selector.dup << 0)], pair[*(selector.dup << 1)])
+			# output needs to be the same shape, but float
+			out = NArray.new(5, *target.shape)
+			true_selector = Array.new(target.dim-2, true)
+			target.shape[-1].times do |i|
+				out[*true_selector, true, i] = mapper.call(target[*true_selector, 0, i], target[*true_selector, 1, i])
 			end
+			out
+		},
+		:array_pairs => ->(target, &mapper) {
+			
 		}
 	}
   
@@ -340,7 +348,7 @@ module MM
         # n_diff = NArray.to_na(n_combo.map { |a,b| config.intra_delta.call(a,b) })
         
 				m_diff, n_diff = [m_combo, n_combo].map do |combos| 
-					NArray.to_na(config.mapper.call(combos) { |a, b| config.intra_delta.call(a,b) })
+					config.mapper.call(combos) { |a, b| config.intra_delta.call(a,b) }
 				end
 				
         # puts "m_combo: #{m_combo.to_a.to_s}"
@@ -713,23 +721,14 @@ module MM
   #   combinations
   # end
 	
-	# Returns an Array of combinations where for each element <tt>n</tt>: <tt>n.shape[-1] == 2</tt>
-	# Is there a reason this was a class method?
-	def self.ordered_2_combinations(n)
-		# Creates an array of pairs of elements
-		combos = (0...n.shape[-1]).to_a.combination(2).inject([]) do |memo, c|
-			c = [c]
-			(n.dim-1).times {c.unshift true}
-			# This is the final mask
-			memo << n.slice(*c)
-		end
-		# Commented out; we don't want a larger NArray at this point (that's in the future)
-		# NArray.to_na(combos)
-		combos
+	# Creates an narray of combinations of elements. n.shape[0...n.dim-1] returns 
+	# the shape of the element alone (not the # of elements in a vector)
+	def self.ordered_combinations(n, i)
+		combo_masks = NArray.to_na((0...n.shape[-1]).to_a.combination(i).to_a)
+		n[*Array.new(n.dim-1, true), combo_masks].reshape(*[*n.shape[0...n.dim-1],i,combo_masks.shape[-1]])
 	end
-  
-  # TODO: Make the above method work for one dimension on an NArray, so that we don't have to convert back and forth
-
+	def self.ordered_2_combinations(n) ; MM.ordered_combinations(n, 2) ; end
+	
   #
   # A hash containing delta functions. These functions are for calculating the
   # difference between adjacent values in a morph. Procs contained in this 
