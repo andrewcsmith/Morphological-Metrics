@@ -609,13 +609,11 @@ module MM
     # The interval function should seek forward, rather than starting at
     # index 1 and finishing at the final index.
 
-		# TODO: ACS - This is generalized for both contour and magnitude
-
     # So, to get the 1st order discrete derivative, set delta to :-
     # and provide an interval function which generates an array = m[1...m.length]
     
     if !(m.is_a? NArray)
-      raise "Vector_delta requires an NArray. You passed class #{m.class}"
+      raise ArgumentError, "Vector_delta requires an NArray. You passed class #{m.class}"
     end
 
     if order < 0
@@ -632,18 +630,12 @@ module MM
     delta = MM::DELTA_FUNCTIONS[:abs_diff] if delta.nil?
     int_func = MM::INTERVAL_FUNCTIONS[:plus_one] if int_func.nil?
 
-    # Necessary so that the rev works
-    (m.dim == 1) ? m = NVector[*m] : false
     compare = int_func.call(m)
+    res = delta.call(m[*Array.new(m.dim-1), 0...compare.shape[-1]], compare)
     # If the compare vector is shorter than m, we assume
     # it is structured such that the missing element at the 
     # end of m is incorporated somehow into the compare vector.
     # E.g. for the default m[i] - m[i+1] approach described in self.
-    if (compare.respond_to? :shape) && (compare.shape.size > 1)
-      res = delta.call(m[true,0...compare.shape[1]], compare)
-    else
-      res = delta.call(m[0...compare.total], compare)
-    end
     if order == 1
       return res
     else
