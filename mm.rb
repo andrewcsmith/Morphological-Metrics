@@ -300,12 +300,15 @@ module MM
 	# into something that can be passed to config.intra_delta
 	MAPPER_FUNCTIONS = {
 		# Given an NArray of form [*s, n, i] (see ordered_combinations, below),
-		# :narray pairs will call the given block for each pair
+		# :narray pairs will call the given block for each pair, and return the whole map
 		:narray_pairs => ->(target, &mapper) {
+			# output needs to be the same shape, but float
+			out = NArray.new(5, *target.shape)
 			true_selector = Array.new(target.dim-2, true)
 			target.shape[-1].times do |i|
-				mapper.call(target[*true_selector, 0, i], target[*true_selector, 1, i])
+				out[*true_selector, true, i] = mapper.call(target[*true_selector, 0, i], target[*true_selector, 1, i])
 			end
+			out
 		},
 		:array_pairs => ->(target, &mapper) {
 			
@@ -345,7 +348,7 @@ module MM
         # n_diff = NArray.to_na(n_combo.map { |a,b| config.intra_delta.call(a,b) })
         
 				m_diff, n_diff = [m_combo, n_combo].map do |combos| 
-					NArray.to_na(config.mapper.call(combos) { |a, b| config.intra_delta.call(a,b) })
+					config.mapper.call(combos) { |a, b| config.intra_delta.call(a,b) }
 				end
 				
         # puts "m_combo: #{m_combo.to_a.to_s}"
