@@ -16,7 +16,7 @@ class MMTest < Test::Unit::TestCase
     # p. 331-334
     m = NArray[1,5,12,2,9,6]
     n = NArray[7,6,4,9,8,1]
-     # MM says this value should be 0.2. But I think it should actually be 0.8...
+    # MM says this value should be 0.2. But I think it should actually be 0.8...
     assert_in_delta(0.8, MM.old.call(m,n), 0.01)
     o = NArray[5,3,6,1,4]
     p = NArray[3,6,1,4,2]

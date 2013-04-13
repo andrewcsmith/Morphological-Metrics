@@ -246,8 +246,9 @@ module MM
     sgn_m = self.sgn(m, config.order, config.intra_delta, config.int_func)
     sgn_n = self.sgn(n, config.order, config.intra_delta, config.int_func)
     
+		# TODO: ACS - Fix this so that the direction metrics respect different scalings
     scale_factor = 1
-    scale_factor = (m.total - 1) if config.scale == :absolute
+    scale_factor = (m.total - 1) # if config.scale == :absolute
 
     sgn_m.ne(sgn_n).sum.to_f / scale_factor
   end
