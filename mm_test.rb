@@ -87,5 +87,15 @@ class MMTest < Test::Unit::TestCase
     n = NArray[7,6,4,9,8,1]
     assert_in_delta(0.2666, MM.ucd.call(m,n), 0.0001)    
   end
+	
+	def test_distconfig_scale_should_be_set_to_proc
+		config = MM::DistConfig.new
+		config.scale = :relative
+		assert(config.scale.is_a?(Proc), "config.scale is a #{config.scale.class}")
+	end
+	def test_distconfig_scale_should_be_initialized_to_proc
+		config = MM::DistConfig.new(:scale => :relative)
+		assert(config.scale.is_a?(Proc), "config.scale is a #{config.scale.class}")
+	end
 end
 

@@ -138,7 +138,38 @@ module MM
 			if @ic_calc.is_a?(Symbol) && MM::IC_FUNCTIONS.has_key?(@ic_calc)
 				@ic_calc = MM::IC_FUNCTIONS[@ic_calc]
 			end
+			if @scale.is_a? Symbol
+				self.scale = @scale
+			end
     end
+		
+		def scale=(scale_method)
+			scale_proc = nil
+	    # Constructs a Proc which returns the scale_factor, inner_scale_m, and inner_scale_n
+			case scale_method
+			when :absolute
+	      scale_proc = ->(m_diff, n_diff) do
+	        the_max = [m_diff.max, n_diff.max].max
+	        return [(the_max == 0 ? 1 : the_max), 1, 1]
+	      end
+			when :relative
+	      scale_proc = ->(m_diff, n_diff) do
+	        return [1, (m_diff.max == 0 ? 1 : m_diff.max), (n_diff.max == 0 ? 1 : n_diff.max)]
+	      end
+			when :maxint_squared
+	      scale_proc = ->(m_diff, n_diff) do
+	        root_of_squared_differences = ((m_diff - n_diff)**2)**0.5
+	        [(root_of_squared_differences.max == 0 ? 1 : root_of_squared_differences.max), 1, 1]
+	      end
+			when :none
+	      scale_proc = ->(m_diff, n_diff) do
+	        [1.0, 1.0, 1.0]
+	      end
+			when Proc 
+	      scale_proc = scale_method
+	    end
+			@scale = scale_proc
+		end
   end
 
   ##
@@ -301,12 +332,14 @@ module MM
 	MAPPER_FUNCTIONS = {
 		# Given an NArray of form [*s, n, i] (see ordered_combinations, below),
 		# :narray pairs will call the given block for each pair, and return the whole map
-		:narray_pairs => ->(target, &mapper) {
-			# output needs to be the same shape, but float
+		:narray_pairs => ->(target, &delta) {
+			# output needs to be the same shape, but float value
 			out = NArray.new(5, *target.shape)
+			# want to get every dimension in the object that we can
 			true_selector = Array.new(target.dim-2, true)
+			# it's still necessary to call the delta function on each individual pair
 			target.shape[-1].times do |i|
-				out[*true_selector, true, i] = mapper.call(target[*true_selector, 0, i], target[*true_selector, 1, i])
+				out[*true_selector, true, i] = delta.call(target[*true_selector, 0, i], target[*true_selector, 1, i])
 			end
 			out
 		},
@@ -330,23 +363,14 @@ module MM
   def self.get_mag_metric(style = :combinatorial, post_proc)
     ->(m, n, config = self::DistConfig.new) {
       if style == :combinatorial
-        # This returns normal Ruby arrays of NArrays
+        # This returns NArrays where shape[-2] == 2
+				# e.g., it is an NArray made up of n pairs of elements
+				# where n = # of possible combinations
         m_combo = ordered_2_combinations m
         n_combo = ordered_2_combinations n
         
-				# TODO: :mapper should definitely be passed as part of the object in question
-				# This defines how the intra_delta treats individual combinations
-        # This is probably pretty slow
-        # if m.shape.size == 2
-        #   mapper = ->(a){config.intra_delta.call(a[true,0],a[true,1])}
-        # elsif m.shape.size == 1
-        #   mapper = ->(a){config.intra_delta.call(a[0], a[1])}
-        # end
-        
-        # Legacy code
-        # m_diff = NArray.to_na(m_combo.map { |a,b| config.intra_delta.call(a,b) })
-        # n_diff = NArray.to_na(n_combo.map { |a,b| config.intra_delta.call(a,b) })
-        
+				# The mapper function replaces the default #map method in Array
+				# and is a variable of the DistConfig that is passed to get the proc
 				m_diff, n_diff = [m_combo, n_combo].map do |combos| 
 					config.mapper.call(combos) { |a, b| config.intra_delta.call(a,b) }
 				end
@@ -363,29 +387,8 @@ module MM
       # puts "n_diff: #{n_diff.class}\n#{n_diff.to_a.to_s}"
 
       scale_proc = ->(m_diff, n_diff) {return [1, 1, 1]}
-      # Constructs a Proc which returns the scale_factor, inner_scale_m, and inner_scale_n
-			case config.scale
-			when :absolute
-        scale_proc = ->(m_diff, n_diff) do
-          the_max = [m_diff.max, n_diff.max].max
-          return [(the_max == 0 ? 1 : the_max), 1, 1]
-        end
-			when :relative
-        scale_proc = ->(m_diff, n_diff) do
-          return [1, (m_diff.max == 0 ? 1 : m_diff.max), (n_diff.max == 0 ? 1 : n_diff.max)]
-        end
-			when :maxint_squared
-        scale_proc = ->(m_diff, n_diff) do
-          root_of_squared_differences = ((m_diff - n_diff)**2)**0.5
-          [(root_of_squared_differences.max == 0 ? 1 : root_of_squared_differences.max), 1, 1]
-        end
-			when :none
-        scale_proc = ->(m_diff, n_diff) do
-          [1.0, 1.0, 1.0]
-        end
-			when Proc 
-        scale_proc = config.scale
-      end   
+      
+			scale_proc = config.scale
       scale_factor, inner_scale_m, inner_scale_n = scale_proc.call(m_diff, n_diff)
 
       post_proc.call(config.intra_delta, config.inter_delta, m_diff, n_diff, m_combo, n_combo, 
@@ -619,7 +622,7 @@ module MM
     (m.is_a? NArray) ? true : raise(ArgumentError, "Vector_delta requires an NArray. You passed class #{m.class}")
     (order < 0) ? raise(ArgumentError, "Order must be >= 0") : false
 		(delta && ![Symbol, Proc].include?(delta.class)) ? raise(ArgumentError, "delta must be Symbol or Proc") : (delta = delta.to_proc if delta.class == Symbol)
-		(int_func && [Symbol, Proc].include?(int_func.class)) ? raise(ArugmentError, "int_func must be Symbol or Proc") : false
+		(int_func && ![Symbol, Proc].include?(int_func.class)) ? raise(ArgumentError, "int_func must be Symbol or Proc. Is #{int_func.class}") : false
 
     delta = MM::DELTA_FUNCTIONS[:abs_diff] if delta.nil?
     int_func = MM::INTERVAL_FUNCTIONS[:plus_one] if int_func.nil?
@@ -668,10 +671,7 @@ module MM
   # The formulation in MM is somewhat confusing because it includes
   # the generalized delta symbol, indicating any notion of difference
   # may be plugged in. It seems, though, that "upness" and "downness"
-  # necessarily imply a certain notion of difference, i.e. a delta function
-  # different from the standard magnitude (abs) function whose use is
-  # implicit in most of self.
-  #
+  # necessarily imply a certain notion of difference, i.e. a delta function 
   # A clue about how this was originally implemented is in the name of
   # the function "sgn" or "sign" and that /negative/ means up and pos
   # means down. This indicates subtraction was used. In the spirit of the
