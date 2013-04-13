@@ -333,12 +333,13 @@ module MM
 	MAPPER_FUNCTIONS = {
 		# Given an NArray of form [*s, n, i] (see ordered_combinations, below),
 		# :narray pairs will call the given block for each pair, and return the whole map
+		# Although this avoids converting from NArray to Array and back, it still has to iterate
 		:narray_pairs => ->(target, &delta) {
 			# output needs to be the same shape, but float value
 			out = NArray.new(5, *target.shape)
 			# want to get every dimension in the object that we can
 			true_selector = Array.new(target.dim-2, true)
-			# it's still necessary to call the delta function on each individual pair
+			# it's still necessary to iterate through each individual pair to call the delta function
 			target.shape[-1].times do |i|
 				out[*true_selector, true, i] = delta.call(target[*true_selector, 0, i], target[*true_selector, 1, i])
 			end
@@ -363,18 +364,17 @@ module MM
   #
   def self.get_mag_metric(style = :combinatorial, post_proc)
     ->(m, n, config = self::DistConfig.new) {
-      if style == :combinatorial
-        # This returns NArrays where shape[-2] == 2
-				# e.g., it is an NArray made up of n pairs of elements
-				# where n = # of possible combinations
-        m_combo = ordered_2_combinations m
-        n_combo = ordered_2_combinations n
-        
-				# The mapper function replaces the default #map method in Array
-				# and is a variable of the DistConfig that is passed to get the proc
-				m_diff, n_diff = [m_combo, n_combo].map do |combos| 
-					config.mapper.call(combos) { |a, b| config.intra_delta.call(a,b) }
-				end
+      if style == :combinatorial        
+				# Get the diff vectors from the items passed
+				m_diff, m_combo, n_diff, n_combo = [m, n].map do |vector|
+	        # This returns NArrays where shape[-2] == 2
+					# e.g., it is an NArray made up of n pairs of elements
+					# where n = # of possible combinations
+					combo = ordered_2_combinations(vector)
+					# The mapper function replaces the default #map method in Array
+					# and is a variable of the DistConfig that is passed to get the proc
+					[config.mapper.call(combo) { |a, b| config.intra_delta.call(a,b) }, combo]
+				end.flatten # flatten, so that we can assign in-line to the variables
 				
         # puts "m_combo: #{m_combo.to_a.to_s}"
         # puts "n_combo: #{n_combo.to_a.to_s}"
