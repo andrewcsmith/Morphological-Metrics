@@ -2,6 +2,20 @@ require './mm.rb'
 require 'test/unit'
 
 class MMTest < Test::Unit::TestCase
+	def setup
+		# Fixtures
+		# ========
+		
+		# Example of a three-dimensional array where each element has shape == [2,3]
+		@morph_vector = NArray[[[4, 3], [5, 4], [3, 2]], [[2, 3], [4, 3], [6, 7]], [[7, 6], [8, 7], [11, 8]]]
+		@morph_vector_compare = NArray[[[4, 3], [5, 4], [7, 5]], [[6, 5], [11, 4], [11, 7]], [[9, 8], [10, 9], [5, 4]]]
+		# Example of a two-dimensional array where each element is two integers
+		@ratio_vector = NArray[[3, 4], [2, 3], [5, 6]]
+		@ratio_vector_compare = NArray[[4, 3], [5, 4], [7, 5]]
+		# Example of a one-dimensional array where each element is a float
+		@float_vector = NArray[4.5, 2.3, 0, -3.2, 8]
+		@float_vector_compare = NArray[3.4, 3.2, 7.4, 1, 2.8]
+	end
   
   def test_olm
     # p. 331-334
@@ -88,6 +102,13 @@ class MMTest < Test::Unit::TestCase
     assert_in_delta(0.2666, MM.ucd.call(m,n), 0.0001)    
   end
 	
+	# This is part of a refactoring where the scaling Proc is in the DistConfig.
+	# On the one hand, this means that symbols like :absolute are converted into
+	# Procs, and therefore their corresponding DistConfig objects cannot be used
+	# interchangeably with both Magnitude and Direction metrics. On the other
+	# hand, hard-coding the scale Proc into a DistConfig allows for the reuse
+	# of specialized scaling Procs, and alternate modes of scaling, without
+	# hacking the MM code.
 	def test_distconfig_scale_should_be_set_to_proc
 		config = MM::DistConfig.new
 		config.scale = :relative
@@ -96,6 +117,39 @@ class MMTest < Test::Unit::TestCase
 	def test_distconfig_scale_should_be_initialized_to_proc
 		config = MM::DistConfig.new(:scale => :relative)
 		assert(config.scale.is_a?(Proc), "config.scale is a #{config.scale.class}")
+	end
+	
+	###################
+	# Nesting Metrics 
+	#
+	# Ensure that metrics can be used as delta functions for other metrics
+	# TODO: Write tests to every combination of metric and intra/inter delta
+	# 
+	
+	# MM.dist_ocm
+	# - using the UCD as intra-delta
+	# - using abs_diff as inter_delta
+	def test_ucd_as_intra_delta
+		# Drawn from MM, p. 315
+		q = NArray[5,3,7,6]
+		r = NArray[2,1,2,1]
+		s = NArray[8,3,5,4]
+		# Setting up two different orderings of the intervals
+		m = NArray[q, r, s]
+		n = NArray[r, s, q]
+		# Setting up the OCD intra_delta with hard-coded scaling
+		ocd_proc = ->(a, b, config = MM::DistConfig.new(:scale => :relative)) do
+			MM.dist_ocd(a, b, config)
+		end
+		# Expected results:
+		# Using the OCD as intra_delta
+		# m_combos = [0.5, 0.33, 0.33]
+		# n_combos = [0.33, 0.5, 0.33]
+		# 
+		# (scaled over 0.5)
+		# OCM diffs = [0, 0.3333, 0.3333]
+		assert_in_delta(0.222, MM.dist_ocm(m, n, MM::DistConfig.new(:intra_delta => ocd_proc, :scale => :none)), 0.001)
+		assert_in_delta(0.666, MM.dist_ocm(m, n, MM::DistConfig.new(:intra_delta => ocd_proc, :scale => :absolute)), 0.001)
 	end
 end
 

@@ -692,21 +692,6 @@ module MM
   def self.sgn_single(i)
 		(i <=> 0) * -1
   end
-
-  # #
-  # # Ordered 2-combinations
-  # # Provides all of the 2-combinations of an array
-  # # in an order corresponding to a "flattened" comparison matrix.
-  # #
-  # def self.ordered_2_combinations(n)
-  #   combinations = []
-  #   n.each_index do |i|
-  #     ((i + 1)..(n.size - 1)).each do |j|
-  #       combinations << [n[i], n[j]]
-  #     end
-  #   end
-  #   combinations
-  # end
 	
 	# Creates an narray of combinations of elements. n.shape[0...n.dim-1] returns 
 	# the shape of the element alone (not the # of elements in a vector)
