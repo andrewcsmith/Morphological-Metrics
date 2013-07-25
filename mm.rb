@@ -121,9 +121,9 @@ module MM
     #              constant docs for details. Default: IC_FUNCTIONS[:mod]
     # [+:mod+] The modulus of the numbering system. Used only in interval class
     #          calculations. Default: 12
-		# [+:mapper+] The function to map the output of ordered_2_combinations onto the delta
-		# 
-		# 
+    # [+:mapper+] The function to map the output of ordered_2_combinations onto the delta
+    # 
+    # 
     #
     def initialize(opts = {})
       @scale       = opts[:scale]       || :absolute
@@ -133,54 +133,54 @@ module MM
       @int_func    = opts[:int_func]    || MM::INTERVAL_FUNCTIONS[:plus_one]
       @ic_calc     = opts[:ic_calc]     || MM::IC_FUNCTIONS[:mod]
       @mod         = opts[:mod]         || 12
-			@mapper      = opts[:mapper]      || MM::MAPPER_FUNCTIONS[:narray_pairs]
-			
-			[@inter_delta, @intra_delta].each do |sym|
-				if sym.is_a?(Symbol) && MM::DELTA_FUNCTIONS.has_key?(sym)
-					sym = MM::DELTA_FUNCTIONS[sym]
-				end
-			end
-			if @int_func.is_a?(Symbol) && MM::INTERVAL_FUNCTIONS.has_key?(@int_func)
-				@int_func = MM::INTERVAL_FUNCTIONS[@int_func]
-			end
-			if @mapper.is_a?(Symbol) && MM::MAPPER_FUNCTIONS.has_key?(@mapper)
-				@mapper = MM::MAPPER_FUNCTIONS[@mapper]
-			end
-			if @ic_calc.is_a?(Symbol) && MM::IC_FUNCTIONS.has_key?(@ic_calc)
-				@ic_calc = MM::IC_FUNCTIONS[@ic_calc]
-			end
-			if @scale.is_a? Symbol
-				self.scale = @scale
-			end
+      @mapper      = opts[:mapper]      || MM::MAPPER_FUNCTIONS[:narray_pairs]
+      
+      [@inter_delta, @intra_delta].each do |sym|
+        if sym.is_a?(Symbol) && MM::DELTA_FUNCTIONS.has_key?(sym)
+          sym = MM::DELTA_FUNCTIONS[sym]
+        end
+      end
+      if @int_func.is_a?(Symbol) && MM::INTERVAL_FUNCTIONS.has_key?(@int_func)
+        @int_func = MM::INTERVAL_FUNCTIONS[@int_func]
+      end
+      if @mapper.is_a?(Symbol) && MM::MAPPER_FUNCTIONS.has_key?(@mapper)
+        @mapper = MM::MAPPER_FUNCTIONS[@mapper]
+      end
+      if @ic_calc.is_a?(Symbol) && MM::IC_FUNCTIONS.has_key?(@ic_calc)
+        @ic_calc = MM::IC_FUNCTIONS[@ic_calc]
+      end
+      if @scale.is_a? Symbol
+        self.scale = @scale
+      end
     end
-		
-		def scale=(scale_method)
-			scale_proc = nil
-	    # Constructs a Proc which returns the scale_factor, inner_scale_m, and inner_scale_n
-			case scale_method
-			when :absolute
-	      scale_proc = ->(m_diff, n_diff) do
-	        the_max = [m_diff.max, n_diff.max].max
-	        return [(the_max == 0 ? 1 : the_max), 1, 1]
-	      end
-			when :relative
-	      scale_proc = ->(m_diff, n_diff) do
-	        return [1, (m_diff.max == 0 ? 1 : m_diff.max), (n_diff.max == 0 ? 1 : n_diff.max)]
-	      end
-			when :maxint_squared
-	      scale_proc = ->(m_diff, n_diff) do
-	        root_of_squared_differences = ((m_diff - n_diff)**2)**0.5
-	        [(root_of_squared_differences.max == 0 ? 1 : root_of_squared_differences.max), 1, 1]
-	      end
-			when :none
-	      scale_proc = ->(m_diff, n_diff) do
-	        [1.0, 1.0, 1.0]
-	      end
-			when Proc 
-	      scale_proc = scale_method
-	    end
-			@scale = scale_proc
-		end
+    
+    def scale=(scale_method)
+      scale_proc = nil
+      # Constructs a Proc which returns the scale_factor, inner_scale_m, and inner_scale_n
+      case scale_method
+      when :absolute
+        scale_proc = ->(m_diff, n_diff) do
+          the_max = [m_diff.max, n_diff.max].max
+          return [(the_max == 0 ? 1 : the_max), 1, 1]
+        end
+      when :relative
+        scale_proc = ->(m_diff, n_diff) do
+          return [1, (m_diff.max == 0 ? 1 : m_diff.max), (n_diff.max == 0 ? 1 : n_diff.max)]
+        end
+      when :maxint_squared
+        scale_proc = ->(m_diff, n_diff) do
+          root_of_squared_differences = ((m_diff - n_diff)**2)**0.5
+          [(root_of_squared_differences.max == 0 ? 1 : root_of_squared_differences.max), 1, 1]
+        end
+      when :none
+        scale_proc = ->(m_diff, n_diff) do
+          [1.0, 1.0, 1.0]
+        end
+      when Proc 
+        scale_proc = scale_method
+      end
+      @scale = scale_proc
+    end
   end
 
   ##
@@ -192,10 +192,10 @@ module MM
     # for functions that require it, e.g. angle.
     (((m - n) ** 2).sum) ** 0.5
   end
-	# 
-	# :spaceship method to get <=> to work properly on an narray
-	# 
-	@@spaceship = ->(m, n){((m > n).to_f - (m < n)).to_i}
+  # 
+  # :spaceship method to get <=> to work properly on an narray
+  # 
+  @@spaceship = ->(m, n){((m > n).to_f - (m < n)).to_i}
   
   
   #######################
@@ -257,7 +257,7 @@ module MM
     sgn_m = self.sgn(m, config.order, config.intra_delta, config.int_func)
     sgn_n = self.sgn(n, config.order, config.intra_delta, config.int_func)
     
-		# TODO: ACS - Fix this so that the direction metrics respect different scalings
+    # TODO: ACS - Fix this so that the direction metrics respect different scalings
     scale_factor = 1
     scale_factor = (m.total - 1) # if config.scale == :absolute
 
@@ -327,7 +327,7 @@ module MM
 
     m_sgn_map = config.mapper.call(m_combo) { |a, b| self.sgn_single(config.intra_delta.call(a,b)) }
     n_sgn_map = config.mapper.call(n_combo) { |a, b| self.sgn_single(config.intra_delta.call(a,b)) }
-		
+    
     m_sgn = NArray.to_na(m_sgn_map)
     n_sgn = NArray.to_na(n_sgn_map)
 
@@ -338,28 +338,28 @@ module MM
     end
     sum.to_f / 2
   end
-	
-	# These should turn the output of ordered_2_combinations 
-	# into something that can be passed to config.intra_delta
-	MAPPER_FUNCTIONS = {
-		# Given an NArray of form [*s, n, i] (see ordered_combinations, below),
-		# :narray pairs will call the given block for each pair, and return the whole map
-		# Although this avoids converting from NArray to Array and back, it still has to iterate
-		:narray_pairs => ->(target, &delta) {
-			# output needs to be the same shape, but float value
-			out = NArray.new(5, *target.shape)
-			# want to get every dimension in the object that we can
-			true_selector = Array.new(target.dim-2, true)
-			# it's still necessary to iterate through each individual pair to call the delta function
-			target.shape[-1].times do |i|
-				out[*true_selector, true, i] = delta.call(target[*true_selector, 0, i], target[*true_selector, 1, i])
-			end
-			out
-		},
-		:array_pairs => ->(target, &mapper) {
-			
-		}
-	}
+  
+  # These should turn the output of ordered_2_combinations 
+  # into something that can be passed to config.intra_delta
+  MAPPER_FUNCTIONS = {
+    # Given an NArray of form [*s, n, i] (see ordered_combinations, below),
+    # :narray pairs will call the given block for each pair, and return the whole map
+    # Although this avoids converting from NArray to Array and back, it still has to iterate
+    :narray_pairs => ->(target, &delta) {
+      # output needs to be the same shape, but float value
+      out = NArray.new(5, *target.shape)
+      # want to get every dimension in the object that we can
+      true_selector = Array.new(target.dim-2, true)
+      # it's still necessary to iterate through each individual pair to call the delta function
+      target.shape[-1].times do |i|
+        out[*true_selector, true, i] = delta.call(target[*true_selector, 0, i], target[*true_selector, 1, i])
+      end
+      out
+    },
+    :array_pairs => ->(target, &mapper) {
+      
+    }
+  }
   
   
   ################################################################
@@ -376,17 +376,17 @@ module MM
   def self.get_mag_metric(style = :combinatorial, post_proc)
     ->(m, n, config = self::DistConfig.new) {
       if style == :combinatorial        
-				# Get the diff vectors from the items passed
-				m_diff, m_combo, n_diff, n_combo = [m, n].map do |vector|
-	        # This returns NArrays where shape[-2] == 2
-					# e.g., it is an NArray made up of n pairs of elements
-					# where n = # of possible combinations
-					combo = ordered_2_combinations(vector)
-					# The mapper function replaces the default #map method in Array
-					# and is a variable of the DistConfig that is passed to get the proc
-					[config.mapper.call(combo) { |a, b| config.intra_delta.call(a,b) }, combo]
-				end.flatten # flatten, so that we can assign in-line to the variables
-				
+        # Get the diff vectors from the items passed
+        m_diff, m_combo, n_diff, n_combo = [m, n].map do |vector|
+          # This returns NArrays where shape[-2] == 2
+          # e.g., it is an NArray made up of n pairs of elements
+          # where n = # of possible combinations
+          combo = ordered_2_combinations(vector)
+          # The mapper function replaces the default #map method in Array
+          # and is a variable of the DistConfig that is passed to get the proc
+          [config.mapper.call(combo) { |a, b| config.intra_delta.call(a,b) }, combo]
+        end.flatten # flatten, so that we can assign in-line to the variables
+        
         # puts "m_combo: #{m_combo.to_a.to_s}"
         # puts "n_combo: #{n_combo.to_a.to_s}"
       elsif style == :linear
@@ -400,7 +400,7 @@ module MM
 
       scale_proc = ->(m_diff, n_diff) {return [1, 1, 1]}
       
-			scale_proc = config.scale
+      scale_proc = config.scale
       scale_factor, inner_scale_m, inner_scale_n = scale_proc.call(m_diff, n_diff)
 
       post_proc.call(config.intra_delta, config.inter_delta, m_diff, n_diff, m_combo, n_combo, 
@@ -619,10 +619,10 @@ module MM
   # specify your own delta proc. These take the nth order discrete derivative 
   # of the input vector.
   #
-	# Argument specs:
-	# - m must be an NArray
-	# - order must be >= 0
-	# - if delta & int_func exist, each must be either a Symbol or a Proc
+  # Argument specs:
+  # - m must be an NArray
+  # - order must be >= 0
+  # - if delta & int_func exist, each must be either a Symbol or a Proc
   def self.vector_delta(m, order = 1, delta = nil, int_func = nil)
     # Always go from 0 to length - 2, i.e. stop 1 index short of the end.
     # The interval function should seek forward, rather than starting at
@@ -633,23 +633,23 @@ module MM
     
     (m.is_a? NArray) ? true : raise(ArgumentError, "Vector_delta requires an NArray. You passed class #{m.class}")
     (order < 0) ? raise(ArgumentError, "Order must be >= 0") : false
-		(delta && ![Symbol, Proc].include?(delta.class)) ? raise(ArgumentError, "delta must be Symbol or Proc") : (delta = delta.to_proc if delta.class == Symbol)
-		(int_func && ![Symbol, Proc].include?(int_func.class)) ? raise(ArgumentError, "int_func must be Symbol or Proc. Is #{int_func.class}") : false
+    (delta && ![Symbol, Proc].include?(delta.class)) ? raise(ArgumentError, "delta must be Symbol or Proc") : (delta = delta.to_proc if delta.class == Symbol)
+    (int_func && ![Symbol, Proc].include?(int_func.class)) ? raise(ArgumentError, "int_func must be Symbol or Proc. Is #{int_func.class}") : false
 
     delta = MM::DELTA_FUNCTIONS[:abs_diff] if delta.nil?
     int_func = MM::INTERVAL_FUNCTIONS[:plus_one] if int_func.nil?
-		
+    
     # If the compare vector is shorter than m, we assume
     # it is structured such that the missing element at the 
     # end of m is incorporated somehow into the compare vector.
     # E.g. for the default m[i] - m[i+1] approach described in self.
-		res = m
-		while order > 0
-	    compare = int_func.call(res)
-	    res = delta.call(res[*Array.new(res.dim-1), 0...compare.shape[-1]], compare)
-			order -= 1
-		end
-		res
+    res = m
+    while order > 0
+      compare = int_func.call(res)
+      res = delta.call(res[*Array.new(res.dim-1), 0...compare.shape[-1]], compare)
+      order -= 1
+    end
+    res
   end
 
   #
@@ -690,7 +690,7 @@ module MM
   # generalized delta function in MM, any delta function may be passed in.
   #
   def self.sgn(m, order = 1, intra_delta = @@spaceship, int_func = nil)
-		# Our most basic intra_delta is contour (spaceship)
+    # Our most basic intra_delta is contour (spaceship)
     deltas = self.vector_delta(m, order, intra_delta, int_func)
   end
 
@@ -701,17 +701,17 @@ module MM
   # described above.
   #
   def self.sgn_single(i)
-		(i <=> 0) * -1
+    (i <=> 0) * -1
   end
-	
-	# Creates an narray of combinations of elements. n.shape[0...n.dim-1] returns 
-	# the shape of the element alone (not the # of elements in a vector)
-	def self.ordered_combinations(n, i)
-		combo_masks = NArray.to_na((0...n.shape[-1]).to_a.combination(i).to_a)
-		n[*Array.new(n.dim-1, true), combo_masks].reshape(*[*n.shape[0...n.dim-1],i,combo_masks.shape[-1]])
-	end
-	def self.ordered_2_combinations(n) ; MM.ordered_combinations(n, 2) ; end
-	
+  
+  # Creates an narray of combinations of elements. n.shape[0...n.dim-1] returns 
+  # the shape of the element alone (not the # of elements in a vector)
+  def self.ordered_combinations(n, i)
+    combo_masks = NArray.to_na((0...n.shape[-1]).to_a.combination(i).to_a)
+    n[*Array.new(n.dim-1, true), combo_masks].reshape(*[*n.shape[0...n.dim-1],i,combo_masks.shape[-1]])
+  end
+  def self.ordered_2_combinations(n) ; MM.ordered_combinations(n, 2) ; end
+  
   #
   # A hash containing delta functions. These functions are for calculating the
   # difference between adjacent values in a morph. Procs contained in this 
