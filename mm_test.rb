@@ -1,10 +1,10 @@
 require './mm.rb'
-require 'test/unit'
+require 'minitest/autorun'
 
 #
 # These tests are for the metrics themselves...
 #
-class MMTest < Test::Unit::TestCase
+class MMTest < Minitest::Test
   
   def test_olm
     # p. 331-334
@@ -150,7 +150,7 @@ end
 #
 # These tests are for helper functions, etc...
 #
-class MMHelperTest < Test::Unit::TestCase
+class MMHelperTest < Minitest::Test
   def test_unfold_pvm
     pvm0 = [[0, 1, 2], [0, 1, 2], [0, 1, 2]]
     
