@@ -105,6 +105,20 @@ class MMTest < Test::Unit::TestCase
     assert_in_delta(0.2666, MM.ucd.call(m,n), 0.0001)    
   end
   
+  ##
+  # The scaling method should be a Proc
+  # 
+	def test_distconfig_scale_should_be_set_to_proc
+		config = MM::DistConfig.new
+		config.scale = :relative
+		assert(config.scale.is_a?(Proc), "config.scale is a #{config.scale.class}")
+	end
+	
+  def test_distconfig_scale_should_be_initialized_to_proc
+		config = MM::DistConfig.new(:scale => :relative)
+		assert(config.scale.is_a?(Proc), "config.scale is a #{config.scale.class}")
+	end
+  
   ###################
   # Nesting Metrics 
   #
