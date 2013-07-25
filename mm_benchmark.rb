@@ -11,7 +11,7 @@ class MMTest < Minitest::Benchmark
   def bench_magnitude
     assert_performance_constant 0.9999 do
       1000.times do
-        MM.olm.call(@m, @n, MM::DistConfig.new(:scale => :none))
+        MM.ocm.call(@m, @n, MM::DistConfig.new(:scale => :none))
       end
     end
   end
@@ -19,7 +19,7 @@ class MMTest < Minitest::Benchmark
   def bench_contour
     assert_performance_constant 0.9999 do
       1000.times do
-        MM.old.call(@m, @n, MM::DistConfig.new(:scale => :none))
+        MM.ocd.call(@m, @n, MM::DistConfig.new(:scale => :none))
       end
     end
   end
