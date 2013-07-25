@@ -1,24 +1,25 @@
 require './mm.rb'
-require 'test/unit'
+require 'minitest/autorun'
 
 #
 # These tests are for the metrics themselves...
 #
-class MMTest < Test::Unit::TestCase
-	def setup
-		# Fixtures
-		# ========
-		
-		# Example of a three-dimensional array where each element has shape == [2,3]
-		@morph_vector = NArray[[[4, 3], [5, 4], [3, 2]], [[2, 3], [4, 3], [6, 7]], [[7, 6], [8, 7], [11, 8]]]
-		@morph_vector_compare = NArray[[[4, 3], [5, 4], [7, 5]], [[6, 5], [11, 4], [11, 7]], [[9, 8], [10, 9], [5, 4]]]
-		# Example of a two-dimensional array where each element is two integers
-		@ratio_vector = NArray[[3, 4], [2, 3], [5, 6]]
-		@ratio_vector_compare = NArray[[4, 3], [5, 4], [7, 5]]
-		# Example of a one-dimensional array where each element is a float
-		@float_vector = NArray[4.5, 2.3, 0, -3.2, 8]
-		@float_vector_compare = NArray[3.4, 3.2, 7.4, 1, 2.8]
-	end
+class MMTest < Minitest::Test
+
+  def setup
+  	# Fixtures
+  	# ========
+	
+  	# Example of a three-dimensional array where each element has shape == [2,3]
+  	@morph_vector = NArray[[[4, 3], [5, 4], [3, 2]], [[2, 3], [4, 3], [6, 7]], [[7, 6], [8, 7], [11, 8]]]
+  	@morph_vector_compare = NArray[[[4, 3], [5, 4], [7, 5]], [[6, 5], [11, 4], [11, 7]], [[9, 8], [10, 9], [5, 4]]]
+  	# Example of a two-dimensional array where each element is two integers
+  	@ratio_vector = NArray[[3, 4], [2, 3], [5, 6]]
+  	@ratio_vector_compare = NArray[[4, 3], [5, 4], [7, 5]]
+  	# Example of a one-dimensional array where each element is a float
+  	@float_vector = NArray[4.5, 2.3, 0, -3.2, 8]
+  	@float_vector_compare = NArray[3.4, 3.2, 7.4, 1, 2.8]
+  end
   
   def test_olm
     # p. 331-334
@@ -104,6 +105,7 @@ class MMTest < Test::Unit::TestCase
     n = NArray[7,6,4,9,8,1]
     assert_in_delta(0.2666, MM.ucd.call(m,n), 0.0001)    
   end
+
   
   ###################
   # Nesting Metrics 
@@ -163,7 +165,7 @@ end
 #
 # These tests are for helper functions, etc...
 #
-class MMHelperTest < Test::Unit::TestCase
+class MMHelperTest < Minitest::Test
   def test_unfold_pvm
     pvm0 = [[0, 1, 2], [0, 1, 2], [0, 1, 2]]
     
