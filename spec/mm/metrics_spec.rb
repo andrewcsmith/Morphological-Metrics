@@ -141,7 +141,7 @@ describe MM do
   
   describe "ic metric" do
     let(:subject) {MM.ic}
-    # I'm not sure this is the correct result
+    # I'm not convinced this is the correct result
     let(:expected) {0.7666}
     
     it_behaves_like "a metric"
