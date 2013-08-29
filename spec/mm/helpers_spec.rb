@@ -60,15 +60,7 @@ describe MM do
           NArray.to_na(n.to_a.map {|m| NArray.to_na(m).sum })
         }
         
-        d = MM.get_mag_metric(:combinatorial,
-          ->(intra_delta, inter_delta, m_diff, n_diff, m_combo, n_combo, 
-            inner_scale_m, inner_scale_n, scale_factor) {
-              inter_delta.call(
-                sum_outermost.call(m_diff.to_f / inner_scale_m) / (m_combo.size * scale_factor),
-                sum_outermost.call(n_diff.to_f / inner_scale_n) / (n_combo.size * scale_factor)).abs
-          }        
-        )
-        ->(m, n){d.call(m, n, MM::DistConfig.new(:intra_delta => abs_diff, :inter_delta => abs_diff))}
+        ->(m, n){MM.dist_ucm(m, n, MM::DistConfig.new(:intra_delta => abs_diff, :inter_delta => abs_diff))}
       }
       
       it "returns arrays of dimension d-1" do        

@@ -225,7 +225,7 @@ module MM
             inner_scale_m, inner_scale_n, scale_factor) {
       inter_diff = inter_delta.call(m_diff.to_f / inner_scale_m, n_diff.to_f / inner_scale_n)
       #puts "inter_diff: #{inter_diff.to_a.to_s}"
-      inter_diff.sum.to_f / (inter_diff.total * scale_factor).to_f
+      inter_diff.sum(0).to_f / (inter_diff.total * scale_factor).to_f
     }
   )
 
@@ -247,8 +247,8 @@ module MM
   @@ulm = self.get_mag_metric(:linear,
     ->(intra_delta, inter_delta, m_diff, n_diff, m_combo, n_combo, 
             inner_scale_m, inner_scale_n, scale_factor) {
-      inter_delta.call(m_diff.sum.to_f / (m_diff.total * inner_scale_m), 
-                       n_diff.sum.to_f / (n_diff.total * inner_scale_n) ).to_f / scale_factor
+      inter_delta.call(m_diff.sum(0).to_f / (m_diff.total * inner_scale_m), 
+                       n_diff.sum(0).to_f / (n_diff.total * inner_scale_n) ).to_f / scale_factor
     }
   )
   
@@ -268,7 +268,7 @@ module MM
     ->(intra_delta, inter_delta, m_diff, n_diff, m_combo, n_combo, 
             inner_scale_m, inner_scale_n, scale_factor) {
       sum = inter_delta.call(m_diff.to_f / inner_scale_m, 
-                             n_diff.to_f / inner_scale_n).sum
+                             n_diff.to_f / inner_scale_n).sum(0)
       sum.to_f / (m_combo.size * scale_factor)
     }
   )
@@ -295,8 +295,8 @@ module MM
     #puts "inner scale n: #{inner_scale_n}"
     #puts "avgd m: #{(m_diff.to_f / inner_scale_m).sum / (m_combo.size * scale_factor)}"
     #puts "avgd n: #{(n_diff.to_f / inner_scale_n).sum / (n_combo.size * scale_factor)}"
-    inter_delta.call((m_diff.to_f / inner_scale_m).sum / (m_combo.size * scale_factor),
-                     (n_diff.to_f / inner_scale_n).sum / (n_combo.size * scale_factor)).abs
+    inter_delta.call((m_diff.to_f / inner_scale_m).sum(0) / (m_combo.size * scale_factor),
+                     (n_diff.to_f / inner_scale_n).sum(0) / (n_combo.size * scale_factor)).abs
     }
   )
 
