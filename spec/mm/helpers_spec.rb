@@ -56,10 +56,6 @@ describe MM do
           end
         }
         
-        sum_outermost = ->(n) {
-          NArray.to_na(n.to_a.map {|m| NArray.to_na(m).sum })
-        }
-        
         ->(m, n){MM.dist_ucm(m, n, MM::DistConfig.new(:intra_delta => abs_diff, :inter_delta => abs_diff))}
       }
       
