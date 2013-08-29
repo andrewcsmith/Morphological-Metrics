@@ -34,6 +34,52 @@ describe MM do
         MM.vector_delta(m, 1, delta).must_equal NArray[-3, -1, 5]
       end
     end
+    
+    describe "with multidimensional arrays as arguments" do
+      let(:x) {
+        NArray[ 
+        [ 24, 16, 12 ], 
+        [ 23, 17, 14 ], 
+        [ 24, 16, 12 ], 
+        [ 26, 14, 11 ], 
+        [ 24, 16, 12 ] ] 
+      }
+      
+      let(:delta) {
+        abs_diff = ->(a, b) {
+          begin
+            (NArray.to_na(a) - NArray.to_na(b)).abs
+          rescue TypeError => e
+            # puts a.inspect
+            # puts b.inspect
+            raise e
+          end
+        }
+        
+        sum_outermost = ->(n) {
+          NArray.to_na(n.to_a.map {|m| NArray.to_na(m).sum })
+        }
+        
+        d = MM.get_mag_metric(:combinatorial,
+          ->(intra_delta, inter_delta, m_diff, n_diff, m_combo, n_combo, 
+            inner_scale_m, inner_scale_n, scale_factor) {
+              inter_delta.call(
+                sum_outermost.call(m_diff.to_f / inner_scale_m) / (m_combo.size * scale_factor),
+                sum_outermost.call(n_diff.to_f / inner_scale_n) / (n_combo.size * scale_factor)).abs
+          }        
+        )
+        ->(m, n){d.call(m, n, MM::DistConfig.new(:intra_delta => abs_diff, :inter_delta => abs_diff))}
+      }
+      
+      it "returns arrays of dimension d-1" do        
+        # puts MM.vector_delta(x, 1, delta).inspect
+        MM.vector_delta(x, 1, delta).dim.must_equal 1
+      end
+      
+      it "returns arrays of length of number of combinations of x.shape[-1]-1" do
+        MM.vector_delta(x, 1, delta).size.must_equal 6
+      end
+    end
   end
   
   describe "::interval_class" do
@@ -172,6 +218,28 @@ describe MM do
       
       it "returns all but the first element" do
         subject.call(vector).must_equal expected
+      end
+      
+      describe "with an argument having dim > 1" do
+        let(:vector) {
+          NArray[ 
+          [ 24, 16, 12 ], 
+          [ 23, 17, 14 ], 
+          [ 24, 16, 12 ], 
+          [ 26, 14, 11 ], 
+          [ 24, 16, 12 ] ] 
+        }
+        
+        it "returns an narray of the same dim" do
+          # puts subject.call(vector).inspect
+          subject.call(vector).dim.must_equal vector.dim
+        end
+        
+        it "returns an narray of shape [x, y-1]" do
+          new_shape = vector.shape
+          new_shape[-1] -= 1
+          subject.call(vector).shape.must_equal new_shape
+        end
       end
     end
     
