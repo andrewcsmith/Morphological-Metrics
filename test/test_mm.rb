@@ -97,11 +97,11 @@ class MMTest < Minitest::Test
   # Ensure that metrics can be used as delta functions for other metrics
   # TODO: Write tests to every combination of metric and intra/inter delta
   # 
-  
+  # 
   # MM.dist_ocm
-  # - using the UCD as intra-delta
+  # - using the OCD as intra_delta
   # - using abs_diff as inter_delta
-  def test_ucd_as_intra_delta
+  def test_ocd_as_intra_delta
     # Drawn from MM, p. 315
     q = NArray[5,3,7,6]
     r = NArray[2,1,2,1]
@@ -110,9 +110,9 @@ class MMTest < Minitest::Test
     m = NArray[q, r, s]
     n = NArray[r, s, q]
     # Setting up the OCD intra_delta with hard-coded scaling
-    ocd_proc = ->(a, b, config = MM::DistConfig.new(:scale => :relative)) do
+    ocd_proc = ->(a, b, config = MM::DistConfig.new(:scale => :relative)) {
       MM.dist_ocd(a, b, config)
-    end
+    }
     # Expected results:
     # Using the OCD as intra_delta
     # m_combos = [0.5, 0.33, 0.33]
