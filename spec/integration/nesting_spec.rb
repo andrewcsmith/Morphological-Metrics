@@ -4,6 +4,7 @@ require 'minitest/autorun'
 
 describe "nesting metrics" do
   it "should be able to nest" do
+    skip
     x = NArray[ 
       [ 24, 16, 12 ], 
       [ 23, 17, 14 ], 
