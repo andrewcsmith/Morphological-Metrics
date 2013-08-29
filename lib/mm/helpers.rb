@@ -35,7 +35,8 @@ module MM
     # it is structure such that the missing element at the 
     # end of m is incorporated somehow into the compare vector.
     # E.g. for the default m[i] - m[i+1] approach described in self.
-    res = delta.call(m[0...compare.total], compare)
+    res = delta.call(m[*Array.new(m.shape.size-1, true), 0...(m.shape[-1]-1)], compare)
+    
     if order == 1
       return res
     else
@@ -166,7 +167,8 @@ module MM
   #
   INTERVAL_FUNCTIONS = Hash[
     :plus_one => lambda do |m|
-      m[1...m.total]          # Default: as in the 1st discrete derivative; use all but the 1st element
+      # Default: as in the 1st discrete derivative; use all but the 1st element
+      m[*Array.new(m.shape.size-1, true), 1...m.shape[-1]]
     end,
     :mean => lambda do |m|
       NArray.float(m.total).fill!(m.mean)
